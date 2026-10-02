@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GenAI Hub - Class Portal</title>
+  <meta name="description" content="Official Class Portal for Question Papers, Assignments, and Notes.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+  <!-- Dynamic Glowing Orbs -->
+  <div class="bg-gradient-glow">
+    <div class="glow-orb orb-amber"></div>
+    <div class="glow-orb orb-emerald"></div>
+    <div class="glow-orb orb-violet"></div>
+  </div>
+
+  <!-- ==================== LOGIN SCREEN ==================== -->
+  <div id="loginSection" class="auth-wrapper">
+    <div class="auth-card glass-card">
+      <div class="auth-header">
+        <div class="brand-logo">
+          <i data-lucide="sparkles" class="logo-icon"></i>
+          <span class="brand-text">GenAI <span class="gradient-text">Hub</span></span>
+        </div>
+        <p class="auth-subtitle">Official Student & Admin Portal</p>
+      </div>
+
+      <div class="auth-body">
+        <!-- Role Switcher Tabs -->
+        <div class="auth-role-tabs">
+          <button id="tabStudent" class="role-tab active" onclick="setLoginRole('student')">
+            <i data-lucide="graduation-cap"></i> Student Login
+          </button>
+          <button id="tabAdmin" class="role-tab" onclick="setLoginRole('admin')">
+            <i data-lucide="shield-check"></i> Admin Portal
+          </button>
+        </div>
+
+        <!-- Clean Login Form -->
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="regNumberInput" id="regInputLabel">Enter Register Number</label>
+            <div class="input-wrapper">
+              <i data-lucide="user-check" class="input-icon"></i>
+              <input 
+                type="text" 
+                id="regNumberInput" 
+                placeholder="e.g. RA2531243010052" 
+                autocomplete="off" 
+                required
+              >
+            </div>
+          </div>
+
+          <div id="passwordFieldGroup" class="form-group hidden">
+            <label for="adminPassInput">Admin Password</label>
+            <div class="input-wrapper">
+              <i data-lucide="lock" class="input-icon"></i>
+              <input type="password" id="adminPassInput" placeholder="Enter password">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-gold btn-full glow-btn">
+            <span id="loginBtnText">Enter Portal</span>
+            <i data-lucide="arrow-right"></i>
+          </button>
+        </form>
+      </div>
+
+      <div class="auth-footer">
+        <p><i data-lucide="shield-check" class="mini-icon"></i> Class Portal &bull; Secure Authentication</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== HOME / DASHBOARD SCREEN ==================== -->
+  <div id="dashboardSection" class="dashboard-wrapper hidden">
+    <!-- Navbar -->
+    <header class="navbar glass-nav">
+      <div class="nav-left">
+        <div class="brand-logo sm" onclick="showMainHomeView()" style="cursor:pointer;">
+          <i data-lucide="sparkles" class="logo-icon"></i>
+          <span class="brand-text">GenAI <span class="gradient-text">Hub</span></span>
+        </div>
+        <span class="class-badge" id="navRoleBadge"><i data-lucide="award"></i> Class Portal</span>
+      </div>
+
+      <div class="nav-right">
+        <button id="adminAnnounceBtn" class="btn btn-amber btn-sm hidden" onclick="openAnnouncementModal()">
+          <i data-lucide="megaphone"></i> Manage Announcements
+        </button>
+        <button id="adminUploadBtn" class="btn btn-emerald btn-sm hidden" onclick="openUploadModal()">
+          <i data-lucide="plus-circle"></i> Upload Resource
+        </button>
+
+        <div class="user-pill">
+          <div class="user-avatar" id="userAvatar">ST</div>
+          <div class="user-info">
+            <span class="user-name" id="displayRegNo">RA2531243010052</span>
+            <span class="user-role" id="displayRole">Student</span>
+          </div>
+        </div>
+
+        <button class="btn btn-outline-danger btn-icon-only" title="Logout" onclick="handleLogout()">
+          <i data-lucide="log-out"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Catchy Animated Multiple Announcement Marquee Banner -->
+    <div class="announcement-banner-wrapper" id="announcementBanner">
+      <div class="announcement-glass">
+        <div class="badge-live">
+          <span class="pulse-dot"></span>
+          <i data-lucide="bell" class="mini-icon"></i> ANNOUNCEMENTS
+        </div>
+        
+        <div class="marquee-track-container">
+          <div class="marquee-content" id="announcementText">
+            <!-- Multiple announcements injected via JavaScript -->
+          </div>
+        </div>
+
+        <button class="banner-close" title="Dismiss" onclick="dismissBanner()"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- VIEW 1: MAIN HOME PAGE -->
+      <div id="mainHomeView">
+        <!-- Welcome Header -->
+        <section class="welcome-card glass-panel">
+          <div class="welcome-text-container">
+            <h1 class="welcome-title">Welcome, <span id="welcomeRegNo" class="highlight-gold">RA2531243010052</span> (<span id="welcomeName" class="highlight-mint">GAGAN PRAMOD</span>)!</h1>
+            <p class="welcome-sub" id="welcomeSubText">Select an option below to view question papers, assignments, or notes.</p>
+          </div>
+          <div class="welcome-icon-box">
+            <i data-lucide="sparkles" class="welcome-sparkle"></i>
+          </div>
+        </section>
+
+        <!-- Main Home Options Grid (Question Papers, Assignments, Notes) -->
+        <section class="options-section">
+          <h2 class="section-heading"><i data-lucide="layers"></i> Resource Categories</h2>
+          
+          <div class="options-grid">
+            <!-- Question Papers Option Card -->
+            <div class="option-card glass-card qp-border" onclick="openQuestionPapersPage()">
+              <div class="option-header">
+                <div class="option-icon-bg qp-theme">
+                  <i data-lucide="file-question"></i>
+                </div>
+                <span class="count-pill" id="countQP">0 Available</span>
+              </div>
+              <h3 class="option-title">Question Papers</h3>
+              <p class="option-desc">Access CT1, CT2, and Model exam papers for Python with Django Framework, DBMS, and Deep Learning.</p>
+              <div class="option-footer">
+                <span class="link-text">Browse Question Papers</span>
+                <i data-lucide="arrow-right" class="arrow-icon"></i>
+              </div>
+            </div>
+
+            <!-- Assignments Option Card -->
+            <div class="option-card glass-card assign-border" onclick="selectCategory('Assignments')">
+              <div class="option-header">
+                <div class="option-icon-bg assign-theme">
+                  <i data-lucide="file-text"></i>
+                </div>
+                <span class="count-pill" id="countAssign">0 Available</span>
+              </div>
+              <h3 class="option-title">Assignments</h3>
+              <p class="option-desc">Download assignments for Python with Django Framework, DBMS, and Deep Learning.</p>
+              <div class="option-footer">
+                <span class="link-text">Browse Assignments</span>
+                <i data-lucide="arrow-right" class="arrow-icon"></i>
+              </div>
+            </div>
+
+            <!-- Notes Option Card -->
+            <div class="option-card glass-card notes-border" onclick="selectCategory('Notes')">
+              <div class="option-header">
+                <div class="option-icon-bg notes-theme">
+                  <i data-lucide="book-open"></i>
+                </div>
+                <span class="count-pill" id="countNotes">0 Available</span>
+              </div>
+              <h3 class="option-title">Notes</h3>
+              <p class="option-desc">View class notes for Python with Django Framework, DBMS, and Deep Learning.</p>
+              <div class="option-footer">
+                <span class="link-text">Browse Class Notes</span>
+                <i data-lucide="arrow-right" class="arrow-icon"></i>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- General Resource Display Section (For Notes & Assignments) -->
+        <section class="resources-display-section hidden" id="generalResourceSection">
+          <div class="section-top-bar">
+            <div class="section-title-wrapper">
+              <h2 class="active-category-title" id="generalCategoryHeading">Category Resources</h2>
+              <span class="count-pill" id="generalResultCount">0 Available</span>
+            </div>
+
+            <div class="general-filter-box">
+              <label for="generalSubjectSelect"><i data-lucide="book-open" class="text-amber"></i> Subject:</label>
+              <select id="generalSubjectSelect" onchange="handleGeneralSubjectChange()">
+                <option value="all">-- All Subjects --</option>
+                <option value="Python with Django Framework">Python with Django Framework</option>
+                <option value="DBMS">DBMS</option>
+                <option value="Deep Learning">Deep Learning</option>
+              </select>
+              <button class="btn btn-sm btn-ghost" onclick="hideGeneralResources()">
+                <i data-lucide="x"></i> Close
+              </button>
+            </div>
+          </div>
+
+          <div class="resource-list-grid" id="generalResourceGrid"></div>
+        </section>
+      </div>
+
+      <!-- VIEW 2: DEDICATED QUESTION PAPERS PAGE -->
+      <div id="questionPapersView" class="hidden">
+        <!-- Back Navigation Header -->
+        <div class="qp-page-header glass-panel">
+          <button class="btn btn-ghost btn-sm" onclick="showMainHomeView()">
+            <i data-lucide="arrow-left"></i> Back to Home
+          </button>
+          <div class="qp-title-group">
+            <h2 class="qp-page-title"><i data-lucide="file-question" class="text-coral"></i> Question Papers Vault</h2>
+            <p class="qp-page-sub">Select your subject and examination (CT1, CT2, Model) to find exact question papers.</p>
+          </div>
+        </div>
+
+        <!-- Filter Controls Panel (Choose Subject & Choose Examination: CT1, CT2, Model) -->
+        <section class="qp-filter-panel glass-card">
+          <div class="qp-filter-grid">
+            <!-- Choose Subject Dropdown -->
+            <div class="qp-filter-group">
+              <label for="qpSubjectSelect"><i data-lucide="book-open" class="text-amber"></i> Choose Subject</label>
+              <select id="qpSubjectSelect" onchange="handleQPFilterChange()">
+                <option value="all">-- All Subjects --</option>
+                <option value="Python with Django Framework">Python with Django Framework</option>
+                <option value="DBMS">DBMS</option>
+                <option value="Deep Learning">Deep Learning</option>
+              </select>
+            </div>
+
+            <!-- Choose Examination Dropdown (CT1, CT2, Model) -->
+            <div class="qp-filter-group">
+              <label for="qpExamSelect"><i data-lucide="award" class="text-mint"></i> Choose Examination</label>
+              <select id="qpExamSelect" onchange="handleQPFilterChange()">
+                <option value="all">-- All Examinations --</option>
+                <option value="CT1">CT1</option>
+                <option value="CT2">CT2</option>
+                <option value="Model">Model</option>
+              </select>
+            </div>
+
+            <!-- Reset Button -->
+            <div class="qp-filter-group btn-align-end">
+              <button class="btn btn-amber btn-full" onclick="resetQPFilters()">
+                <i data-lucide="rotate-ccw"></i> Reset Selection
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Question Papers Result List Grid -->
+        <section class="resources-display-section">
+          <div class="section-top-bar">
+            <h3 class="active-category-title" id="qpFilterHeading">Showing All Question Papers</h3>
+            <span class="count-pill" id="qpResultCount">0 Found</span>
+          </div>
+
+          <div class="resource-list-grid" id="qpResourceGrid">
+            <!-- Injected via JavaScript -->
+          </div>
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ==================== MULTIPLE ANNOUNCEMENTS MANAGER MODAL (ADMIN) ==================== -->
+  <div id="announcementModal" class="modal-overlay hidden">
+    <div class="modal-card glass-card">
+      <div class="modal-header">
+        <h3><i data-lucide="megaphone" class="modal-icon text-amber"></i> Manage Class Announcements</h3>
+        <button class="close-btn" onclick="closeAnnouncementModal()"><i data-lucide="x"></i></button>
+      </div>
+      
+      <!-- List of Active Announcements with Delete Options -->
+      <div class="announcements-manager-section">
+        <h4 class="sub-heading">Active Announcements List:</h4>
+        <div id="announcementManagerList" class="announcement-items-container">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Add New Announcement Form -->
+      <form onsubmit="handlePostNewAnnouncement(event)" style="margin-top: 20px;">
+        <div class="form-group">
+          <label for="newAnnouncementInput">Add New Announcement</label>
+          <textarea id="newAnnouncementInput" rows="2" placeholder="e.g. 📢 Assignment 2 submission deadline extended to Friday!" required></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeAnnouncementModal()">Close</button>
+          <button type="submit" class="btn btn-gold">
+            <i data-lucide="plus"></i> Add Announcement
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== UPLOAD RESOURCE MODAL (ADMIN) ==================== -->
+  <div id="uploadModal" class="modal-overlay hidden">
+    <div class="modal-card glass-card">
+      <div class="modal-header">
+        <h3><i data-lucide="upload-cloud" class="modal-icon text-emerald"></i> Upload New Resource</h3>
+        <button class="close-btn" onclick="closeUploadModal()"><i data-lucide="x"></i></button>
+      </div>
+
+      <form id="uploadForm" onsubmit="handleUploadSubmit(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="upCategory">Category</label>
+            <select id="upCategory" required onchange="toggleAdminExamField(this.value)">
+              <option value="Question Papers">Question Papers</option>
+              <option value="Assignments">Assignments</option>
+              <option value="Notes">Notes</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="upSubject">Subject</label>
+            <select id="upSubject" required>
+              <option value="Python with Django Framework">Python with Django Framework</option>
+              <option value="DBMS">DBMS</option>
+              <option value="Deep Learning">Deep Learning</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="adminExamGroup">
+            <label for="upExam">Examination Type</label>
+            <select id="upExam">
+              <option value="CT1">CT1</option>
+              <option value="CT2">CT2</option>
+              <option value="Model">Model</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="upTitle">Resource Title</label>
+            <input type="text" id="upTitle" placeholder="e.g. Django Framework CT1 Question Paper" required>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="upDescription">Short Description</label>
+            <input type="text" id="upDescription" placeholder="e.g. Complete solution key included">
+          </div>
+
+          <div class="form-group full-width">
+            <label>Upload File (PDF / DOCX)</label>
+            <div class="file-dropzone" onclick="document.getElementById('fileInput').click()">
+              <i data-lucide="file-up" class="dropzone-icon"></i>
+              <span class="dropzone-text" id="dropzoneFileName">Click to select PDF or drag file here</span>
+              <input type="file" id="fileInput" accept=".pdf,.docx" class="hidden" onchange="handleFileSelect(this)">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeUploadModal()">Cancel</button>
+          <button type="submit" class="btn btn-emerald glow-btn">
+            <i data-lucide="check-circle"></i> Publish Resource
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
