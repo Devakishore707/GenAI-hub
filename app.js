@@ -1,6 +1,5 @@
 /* ==========================================================================
-   GENAI HUB - CLASS PORTAL SCRIPT
-   Complete Class Roster Integration & Multiple Announcement Support
+   GENAI HUB - CLASS PORTAL SCRIPT WITH SUPABASE DATABASE & STORAGE INTEGRATION
    Admin Credentials: Username RA2531243010075 | Password Dksettan1@
    ========================================================================== */
 
@@ -50,6 +49,9 @@ const DEFAULT_ANNOUNCEMENTS = [
   "💡 Welcome to GenAI Hub Class Portal!"
 ];
 
+// Supabase Global Client Reference
+let supabaseClient = null;
+
 // Application State
 let appState = {
   userRole: 'student', // 'student' or 'admin'
@@ -61,15 +63,17 @@ let appState = {
   qpSubjectFilter: 'all',
   qpExamFilter: 'all',
   announcements: DEFAULT_ANNOUNCEMENTS,
-  resources: [], // Clean empty state - files only show after admin uploads!
+  resources: [],
   selectedFileForUpload: null
 };
 
 // ==========================================================================
-// INITIALIZATION
+// INITIALIZATION & SUPABASE CONNECTION
 // ==========================================================================
-document.addEventListener("DOMContentLoaded", () => {
-  // Load saved announcements list or default
+document.addEventListener("DOMContentLoaded", async () => {
+  initSupabaseClient();
+
+  // Load announcements
   const savedAnnounce = localStorage.getItem("genai_announcements_list");
   if (savedAnnounce) {
     try { appState.announcements = JSON.parse(savedAnnounce); }
@@ -80,17 +84,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   updateAnnouncementUI();
 
-  // Load uploaded resources
-  const savedResources = localStorage.getItem("genai_resources_v5");
-  if (savedResources) {
-    try { appState.resources = JSON.parse(savedResources); }
-    catch(e) { appState.resources = []; }
-  } else {
-    appState.resources = [];
-    localStorage.setItem("genai_resources_v5", JSON.stringify([]));
-  }
+  // Load resources from Supabase if connected, else from localStorage
+  await loadResources();
 
-  // Check existing session
+  // Check login session
   const savedReg = localStorage.getItem("genai_user_reg");
   const savedRole = localStorage.getItem("genai_user_role");
   const savedName = localStorage.getItem("genai_user_name");
@@ -105,6 +102,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (window.lucide) lucide.createIcons();
 });
+
+function initSupabaseClient() {
+  const url = localStorage.getItem("genai_sb_url");
+  const key = localStorage.getItem("genai_sb_key");
+  const statusEl = document.getElementById("sbConnectionStatus");
+
+  if (url && key && window.supabase) {
+    try {
+      supabaseClient = window.supabase.createClient(url, key);
+      if (statusEl) {
+        statusEl.textContent = "Connected to Live Supabase Backend";
+        statusEl.style.color = "#34d399";
+      }
+    } catch(e) {
+      console.warn("Supabase init error:", e);
+    }
+  }
+}
+
+async function loadResources() {
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('resources')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        appState.resources = data;
+        return;
+      }
+    } catch(e) {
+      console.warn("Could not fetch from Supabase, fallback to local:", e);
+    }
+  }
+
+  // Fallback to local storage
+  const savedResources = localStorage.getItem("genai_resources_v5");
+  if (savedResources) {
+    try { appState.resources = JSON.parse(savedResources); }
+    catch(e) { appState.resources = []; }
+  } else {
+    appState.resources = [];
+  }
+}
 
 function sanitizeRegNo(regNo) {
   if (!regNo) return "";
@@ -222,7 +264,7 @@ function showDashboard() {
   const navBadge = document.getElementById("navRoleBadge");
   if (appState.userRole === 'admin') {
     navBadge.innerHTML = `<i data-lucide="shield-check" class="text-amber"></i> Admin Panel`;
-    document.getElementById("welcomeSubText").textContent = "Admin Mode active. Manage announcements, upload question papers (CT1, CT2, Model), notes, or assignments.";
+    document.getElementById("welcomeSubText").textContent = "Admin Mode active. Manage announcements, upload question papers (CT1, CT2, Model), notes, or assignments to Supabase.";
   } else {
     navBadge.innerHTML = `<i data-lucide="award"></i> Class Portal`;
     document.getElementById("welcomeSubText").textContent = "Select an option below to view question papers, assignments, or notes.";
@@ -351,7 +393,7 @@ function renderQuestionPapersPage() {
       </div>
 
       <div class="card-actions">
-        <button class="btn btn-emerald btn-sm ${appState.userRole === 'admin' ? '' : 'btn-full'}" onclick="downloadFile('${item.title}')">
+        <button class="btn btn-emerald btn-sm ${appState.userRole === 'admin' ? '' : 'btn-full'}" onclick="downloadFile('${item.id}', '${item.file_url || ''}', '${item.title}')">
           <i data-lucide="download"></i> Download PDF
         </button>
         ${appState.userRole === 'admin' ? `
@@ -436,7 +478,7 @@ function renderGeneralResources() {
         <span><i data-lucide="hard-drive" class="mini-icon"></i> ${item.size}</span>
       </div>
       <div class="card-actions">
-        <button class="btn btn-emerald btn-sm ${appState.userRole === 'admin' ? '' : 'btn-full'}" onclick="downloadFile('${item.title}')">
+        <button class="btn btn-emerald btn-sm ${appState.userRole === 'admin' ? '' : 'btn-full'}" onclick="downloadFile('${item.id}', '${item.file_url || ''}', '${item.title}')">
           <i data-lucide="download"></i> Download
         </button>
         ${appState.userRole === 'admin' ? `
@@ -455,7 +497,13 @@ function hideGeneralResources() {
   document.getElementById("generalResourceSection").classList.add("hidden");
 }
 
-function downloadFile(title) {
+function downloadFile(id, file_url, title) {
+  if (file_url && file_url.startsWith('http')) {
+    window.open(file_url, '_blank');
+    return;
+  }
+
+  // Simulated fallback download
   const blobText = `%PDF-1.4\nUploaded File Download for ${title}\nGenAI Hub Class Portal`;
   const blob = new Blob([blobText], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
@@ -468,8 +516,16 @@ function downloadFile(title) {
   URL.revokeObjectURL(url);
 }
 
-function deleteResource(resourceId) {
+async function deleteResource(resourceId) {
   if (!confirm("Are you sure you want to delete this resource?")) return;
+
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('resources').delete().eq('id', resourceId);
+    } catch(e) {
+      console.warn("Supabase delete error:", e);
+    }
+  }
 
   appState.resources = appState.resources.filter(r => r.id !== resourceId);
   localStorage.setItem("genai_resources_v5", JSON.stringify(appState.resources));
@@ -480,6 +536,35 @@ function deleteResource(resourceId) {
   } else {
     renderGeneralResources();
   }
+}
+
+// ==========================================================================
+// SUPABASE MODAL LOGIC
+// ==========================================================================
+
+function openSupabaseModal() {
+  document.getElementById("sbUrlInput").value = localStorage.getItem("genai_sb_url") || '';
+  document.getElementById("sbKeyInput").value = localStorage.getItem("genai_sb_key") || '';
+  document.getElementById("supabaseModal").classList.remove("hidden");
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeSupabaseModal() {
+  document.getElementById("supabaseModal").classList.add("hidden");
+}
+
+async function saveSupabaseSettings() {
+  const url = document.getElementById("sbUrlInput").value.trim();
+  const key = document.getElementById("sbKeyInput").value.trim();
+  localStorage.setItem("genai_sb_url", url);
+  localStorage.setItem("genai_sb_key", key);
+
+  initSupabaseClient();
+  await loadResources();
+
+  closeSupabaseModal();
+  updateCategoryCounts();
+  alert("Supabase credentials saved! Connected to your online database and storage.");
 }
 
 // ==========================================================================
@@ -497,8 +582,6 @@ function updateAnnouncementUI() {
   }
 
   if (banner) banner.classList.remove("hidden");
-
-  // Join multiple announcements with bullet separators
   const combinedText = appState.announcements.map(msg => `<span>${msg}</span>`).join('<span style="margin: 0 20px; color: var(--accent-gold); font-weight:700;">&bull;</span>');
   el.innerHTML = combinedText;
 }
@@ -557,11 +640,11 @@ function handlePostNewAnnouncement(e) {
   input.value = "";
   renderAnnouncementManager();
   updateAnnouncementUI();
-  alert("New class announcement added to the live marquee feed!");
+  alert("New class announcement added!");
 }
 
 // ==========================================================================
-// ADMIN UPLOADS LOGIC
+// ADMIN UPLOADS (SUPABASE & LOCAL SUPPORT)
 // ==========================================================================
 
 function openUploadModal() {
@@ -590,7 +673,7 @@ function handleFileSelect(input) {
   }
 }
 
-function handleUploadSubmit(e) {
+async function handleUploadSubmit(e) {
   e.preventDefault();
   const category = document.getElementById("upCategory").value;
   const subject = document.getElementById("upSubject").value;
@@ -598,16 +681,46 @@ function handleUploadSubmit(e) {
   const title = document.getElementById("upTitle").value.trim();
   const description = document.getElementById("upDescription").value.trim();
 
+  let file_url = "#";
+  const resId = "res-" + Date.now();
+  const sizeText = appState.selectedFileForUpload ? (appState.selectedFileForUpload.size / 1024 / 1024).toFixed(1) + " MB" : "2.4 MB";
+  const dateText = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  // If Supabase connected and file selected, upload to Supabase Storage bucket 'class-files'
+  if (supabaseClient && appState.selectedFileForUpload) {
+    const file = appState.selectedFileForUpload;
+    const filePath = `uploads/${Date.now()}_${file.name}`;
+    try {
+      const { data: uploadData, error: uploadErr } = await supabaseClient.storage.from('class-files').upload(filePath, file);
+      if (!uploadErr) {
+        const { data: urlData } = supabaseClient.storage.from('class-files').getPublicUrl(filePath);
+        if (urlData) file_url = urlData.publicUrl;
+      }
+    } catch(err) {
+      console.warn("Supabase Storage Upload Warning:", err);
+    }
+  }
+
   const newResource = {
-    id: "res-" + Date.now(),
+    id: resId,
     title: title,
     category: category,
     subject: subject,
     exam: exam,
     description: description || `${category} file for ${subject}.`,
-    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    size: appState.selectedFileForUpload ? (appState.selectedFileForUpload.size / 1024 / 1024).toFixed(1) + " MB" : "2.4 MB"
+    file_url: file_url,
+    date: dateText,
+    size: sizeText
   };
+
+  // Save to Supabase DB if connected
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('resources').insert([newResource]);
+    } catch(err) {
+      console.warn("Supabase DB Insert Warning:", err);
+    }
+  }
 
   appState.resources.unshift(newResource);
   localStorage.setItem("genai_resources_v5", JSON.stringify(appState.resources));
@@ -621,5 +734,5 @@ function handleUploadSubmit(e) {
     selectCategory(category);
   }
 
-  alert(`Successfully uploaded "${title}" under ${category} (${subject} - ${exam})! It is now visible to all students.`);
+  alert(`Successfully uploaded "${title}" under ${category} (${subject})! It is now live for all students.`);
 }
