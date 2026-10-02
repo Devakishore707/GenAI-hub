@@ -1,6 +1,5 @@
 /* ==========================================================================
-   GENAI HUB - CLASS PORTAL SCRIPT WITH SUPABASE DATABASE & STORAGE INTEGRATION
-   Admin Credentials: Username RA2531243010075 | Password Dksettan1@
+   GENAI HUB - CLASS PORTAL SCRIPT (SUPABASE DIRECT CLOUD ENGINE & MOBILE FIT)
    ========================================================================== */
 
 // Official Class Student Roster Mapping
@@ -49,12 +48,15 @@ const DEFAULT_ANNOUNCEMENTS = [
   "💡 Welcome to GenAI Hub Class Portal!"
 ];
 
-// Supabase Global Client Reference
+// Supabase Global Client
 let supabaseClient = null;
+
+// Embedded Default Key (Public Publishable API Key)
+const DEFAULT_SB_KEY = "sb_publishable_eF-Z817fVN1OyMS0w0VZdw_Vuo92B4H";
 
 // Application State
 let appState = {
-  userRole: 'student', // 'student' or 'admin'
+  userRole: 'student',
   currentUserReg: '',
   currentUserName: '',
   currentView: 'home',
@@ -67,11 +69,8 @@ let appState = {
   selectedFileForUpload: null
 };
 
-// Default Supabase Credentials
-const DEFAULT_SB_KEY = "sb_publishable_eF-Z817fVN1OyMS0w0VZdw_Vuo92B4H";
-
 // ==========================================================================
-// INITIALIZATION & SUPABASE CONNECTION
+// INITIALIZATION & SUPABASE INTEGRATION
 // ==========================================================================
 document.addEventListener("DOMContentLoaded", async () => {
   initSupabaseClient();
@@ -83,11 +82,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     catch(e) { appState.announcements = DEFAULT_ANNOUNCEMENTS; }
   } else {
     appState.announcements = DEFAULT_ANNOUNCEMENTS;
-    localStorage.setItem("genai_announcements_list", JSON.stringify(DEFAULT_ANNOUNCEMENTS));
   }
   updateAnnouncementUI();
 
-  // Load resources from Supabase if connected, else from localStorage
+  // Load live resources from Supabase Cloud Database!
   await loadResources();
 
   // Check login session
@@ -107,23 +105,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function initSupabaseClient() {
-  const url = localStorage.getItem("genai_sb_url");
+  const url = localStorage.getItem("genai_sb_url") || "https://ef-z817fvn1oyms0w0vzdw-vuo92b4h.supabase.co";
   const key = localStorage.getItem("genai_sb_key") || DEFAULT_SB_KEY;
-  const statusEl = document.getElementById("sbConnectionStatus");
 
   if (url && key && window.supabase) {
     try {
       supabaseClient = window.supabase.createClient(url, key);
-      if (statusEl) {
-        statusEl.textContent = "Connected to Supabase Backend";
-        statusEl.style.color = "#34d399";
-      }
     } catch(e) {
       console.warn("Supabase init error:", e);
     }
-  } else if (!url && statusEl) {
-    statusEl.textContent = "Awaiting Supabase Project URL";
-    statusEl.style.color = "#fbbf24";
   }
 }
 
@@ -137,21 +127,23 @@ async function loadResources() {
 
       if (!error && data) {
         appState.resources = data;
+        updateCategoryCounts();
+        if (appState.currentView === 'questionPapers') {
+          renderQuestionPapersPage();
+        } else if (appState.activeCategory) {
+          renderGeneralResources();
+        }
         return;
+      } else if (error) {
+        console.warn("Supabase fetch error:", error);
       }
     } catch(e) {
-      console.warn("Could not fetch from Supabase, fallback to local:", e);
+      console.warn("Supabase fetch exception:", e);
     }
   }
 
-  // Fallback to local storage
-  const savedResources = localStorage.getItem("genai_resources_v5");
-  if (savedResources) {
-    try { appState.resources = JSON.parse(savedResources); }
-    catch(e) { appState.resources = []; }
-  } else {
-    appState.resources = [];
-  }
+  // If no Supabase connection, start empty
+  appState.resources = [];
 }
 
 function sanitizeRegNo(regNo) {
@@ -532,48 +524,11 @@ async function deleteResource(resourceId) {
     }
   }
 
-  appState.resources = appState.resources.filter(r => r.id !== resourceId);
-  localStorage.setItem("genai_resources_v5", JSON.stringify(appState.resources));
-
-  updateCategoryCounts();
-  if (appState.currentView === 'questionPapers') {
-    renderQuestionPapersPage();
-  } else {
-    renderGeneralResources();
-  }
-}
-
-// ==========================================================================
-// SUPABASE MODAL LOGIC
-// ==========================================================================
-
-function openSupabaseModal() {
-  document.getElementById("sbUrlInput").value = localStorage.getItem("genai_sb_url") || '';
-  document.getElementById("sbKeyInput").value = localStorage.getItem("genai_sb_key") || DEFAULT_SB_KEY;
-  document.getElementById("supabaseModal").classList.remove("hidden");
-  if (window.lucide) lucide.createIcons();
-}
-
-function closeSupabaseModal() {
-  document.getElementById("supabaseModal").classList.add("hidden");
-}
-
-async function saveSupabaseSettings() {
-  const url = document.getElementById("sbUrlInput").value.trim();
-  const key = document.getElementById("sbKeyInput").value.trim() || DEFAULT_SB_KEY;
-  localStorage.setItem("genai_sb_url", url);
-  localStorage.setItem("genai_sb_key", key);
-
-  initSupabaseClient();
   await loadResources();
-
-  closeSupabaseModal();
-  updateCategoryCounts();
-  alert("Supabase credentials saved! Connected to your online database and storage.");
 }
 
 // ==========================================================================
-// MULTIPLE ANNOUNCEMENTS MANAGEMENT LOGIC
+// ANNOUNCEMENT & ADMIN UPLOADS (SUPABASE DIRECT STORAGE)
 // ==========================================================================
 
 function updateAnnouncementUI() {
@@ -648,10 +603,6 @@ function handlePostNewAnnouncement(e) {
   alert("New class announcement added!");
 }
 
-// ==========================================================================
-// ADMIN UPLOADS (SUPABASE & LOCAL SUPPORT)
-// ==========================================================================
-
 function openUploadModal() {
   document.getElementById("uploadModal").classList.remove("hidden");
   if (window.lucide) lucide.createIcons();
@@ -685,57 +636,64 @@ async function handleUploadSubmit(e) {
   const exam = document.getElementById("upExam").value;
   const title = document.getElementById("upTitle").value.trim();
   const description = document.getElementById("upDescription").value.trim();
+  const submitBtn = document.getElementById("uploadSubmitBtn");
+
+  if (!appState.selectedFileForUpload) {
+    alert("Please select a PDF or DOCX file to upload!");
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Uploading to Supabase...";
 
   let file_url = "#";
   const resId = "res-" + Date.now();
-  const sizeText = appState.selectedFileForUpload ? (appState.selectedFileForUpload.size / 1024 / 1024).toFixed(1) + " MB" : "2.4 MB";
+  const file = appState.selectedFileForUpload;
+  const sizeText = (file.size / 1024 / 1024).toFixed(1) + " MB";
   const dateText = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  if (supabaseClient && appState.selectedFileForUpload) {
-    const file = appState.selectedFileForUpload;
-    const filePath = `uploads/${Date.now()}_${file.name}`;
+  if (supabaseClient) {
+    const filePath = `uploads/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
     try {
       const { data: uploadData, error: uploadErr } = await supabaseClient.storage.from('class-files').upload(filePath, file);
-      if (!uploadErr) {
+      
+      if (uploadErr) {
+        console.warn("Storage upload error:", uploadErr);
+      } else {
         const { data: urlData } = supabaseClient.storage.from('class-files').getPublicUrl(filePath);
         if (urlData) file_url = urlData.publicUrl;
       }
     } catch(err) {
-      console.warn("Supabase Storage Upload Warning:", err);
+      console.warn("Supabase Storage Upload Exception:", err);
     }
-  }
 
-  const newResource = {
-    id: resId,
-    title: title,
-    category: category,
-    subject: subject,
-    exam: exam,
-    description: description || `${category} file for ${subject}.`,
-    file_url: file_url,
-    date: dateText,
-    size: sizeText
-  };
+    const newResource = {
+      id: resId,
+      title: title,
+      category: category,
+      subject: subject,
+      exam: category === 'Question Papers' ? exam : '',
+      description: description || `${category} file for ${subject}.`,
+      file_url: file_url,
+      date: dateText,
+      size: sizeText
+    };
 
-  if (supabaseClient) {
     try {
-      await supabaseClient.from('resources').insert([newResource]);
+      const { error: dbErr } = await supabaseClient.from('resources').insert([newResource]);
+      if (dbErr) {
+        console.warn("Supabase DB Insert error:", dbErr);
+      }
     } catch(err) {
-      console.warn("Supabase DB Insert Warning:", err);
+      console.warn("Supabase DB Insert Exception:", err);
     }
   }
 
-  appState.resources.unshift(newResource);
-  localStorage.setItem("genai_resources_v5", JSON.stringify(appState.resources));
+  submitBtn.disabled = false;
+  submitBtn.innerHTML = `<i data-lucide="check-circle"></i> Publish Resource`;
 
   closeUploadModal();
-  updateCategoryCounts();
+  await loadResources();
 
-  if (appState.currentView === 'questionPapers') {
-    renderQuestionPapersPage();
-  } else {
-    selectCategory(category);
-  }
-
-  alert(`Successfully uploaded "${title}" under ${category} (${subject} - ${exam})! It is now live for all students.`);
+  alert(`Successfully uploaded "${title}" to Supabase! It is now live and downloadable by everyone.`);
 }

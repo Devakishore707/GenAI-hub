@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GENAI HUB - OBSIDIAN GOLD THEME WITH MULTIPLE ANNOUNCEMENT MANAGER
+   GENAI HUB - OBSIDIAN GOLD THEME (MOBILE RESPONSIVE & SUPABASE INTEGRATED)
    ========================================================================== */
 
 :root {
@@ -46,6 +46,7 @@ body {
   color: var(--text-main);
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Dynamic Glowing Orbs */
@@ -96,6 +97,7 @@ body {
 .glass-card {
   background: var(--bg-card);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -104,6 +106,7 @@ body {
 .glass-panel {
   background: var(--bg-panel);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
 }
@@ -129,13 +132,13 @@ select {
   outline: none;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  width: 100%;
 }
 
 select:hover {
   border-color: var(--accent-gold);
   background-color: rgba(22, 29, 46, 0.95);
   box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
-  transform: translateY(-1px);
 }
 
 select:focus {
@@ -511,14 +514,72 @@ select option {
 
 .modal-footer { margin-top: 24px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 
+/* ==========================================================================
+   MOBILE RESPONSIVE MEDIA QUERIES
+   ========================================================================== */
+
 @media (max-width: 900px) {
   .qp-filter-grid { grid-template-columns: 1fr; }
   .qp-page-header { flex-direction: column; align-items: flex-start; }
 }
 
 @media (max-width: 768px) {
-  .glass-nav { flex-direction: column; gap: 12px; padding: 14px 16px; }
-  .announcement-banner-wrapper { padding: 10px 16px; }
-  .welcome-card { flex-direction: column; text-align: center; gap: 16px; }
-  .options-grid { grid-template-columns: 1fr; }
+  .glass-nav {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  .nav-left .class-badge {
+    display: none;
+  }
+  .nav-right {
+    gap: 8px;
+  }
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  .announcement-banner-wrapper {
+    padding: 8px 14px;
+  }
+  .main-content {
+    padding: 20px 14px 40px 14px;
+  }
+  .welcome-card {
+    padding: 20px 18px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .welcome-title {
+    font-size: 1.4rem;
+  }
+  .welcome-sparkle {
+    display: none;
+  }
+  .options-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .option-card {
+    min-height: 170px;
+    padding: 20px;
+  }
+  .section-top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .general-filter-box {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .modal-card {
+    width: 94%;
+    padding: 20px 16px;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
