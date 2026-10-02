@@ -67,6 +67,9 @@ let appState = {
   selectedFileForUpload: null
 };
 
+// Default Supabase Credentials
+const DEFAULT_SB_KEY = "sb_publishable_eF-Z817fVN1OyMS0w0VZdw_Vuo92B4H";
+
 // ==========================================================================
 // INITIALIZATION & SUPABASE CONNECTION
 // ==========================================================================
@@ -105,19 +108,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function initSupabaseClient() {
   const url = localStorage.getItem("genai_sb_url");
-  const key = localStorage.getItem("genai_sb_key");
+  const key = localStorage.getItem("genai_sb_key") || DEFAULT_SB_KEY;
   const statusEl = document.getElementById("sbConnectionStatus");
 
   if (url && key && window.supabase) {
     try {
       supabaseClient = window.supabase.createClient(url, key);
       if (statusEl) {
-        statusEl.textContent = "Connected to Live Supabase Backend";
+        statusEl.textContent = "Connected to Supabase Backend";
         statusEl.style.color = "#34d399";
       }
     } catch(e) {
       console.warn("Supabase init error:", e);
     }
+  } else if (!url && statusEl) {
+    statusEl.textContent = "Awaiting Supabase Project URL";
+    statusEl.style.color = "#fbbf24";
   }
 }
 
@@ -503,7 +509,6 @@ function downloadFile(id, file_url, title) {
     return;
   }
 
-  // Simulated fallback download
   const blobText = `%PDF-1.4\nUploaded File Download for ${title}\nGenAI Hub Class Portal`;
   const blob = new Blob([blobText], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
@@ -544,7 +549,7 @@ async function deleteResource(resourceId) {
 
 function openSupabaseModal() {
   document.getElementById("sbUrlInput").value = localStorage.getItem("genai_sb_url") || '';
-  document.getElementById("sbKeyInput").value = localStorage.getItem("genai_sb_key") || '';
+  document.getElementById("sbKeyInput").value = localStorage.getItem("genai_sb_key") || DEFAULT_SB_KEY;
   document.getElementById("supabaseModal").classList.remove("hidden");
   if (window.lucide) lucide.createIcons();
 }
@@ -555,7 +560,7 @@ function closeSupabaseModal() {
 
 async function saveSupabaseSettings() {
   const url = document.getElementById("sbUrlInput").value.trim();
-  const key = document.getElementById("sbKeyInput").value.trim();
+  const key = document.getElementById("sbKeyInput").value.trim() || DEFAULT_SB_KEY;
   localStorage.setItem("genai_sb_url", url);
   localStorage.setItem("genai_sb_key", key);
 
@@ -686,7 +691,6 @@ async function handleUploadSubmit(e) {
   const sizeText = appState.selectedFileForUpload ? (appState.selectedFileForUpload.size / 1024 / 1024).toFixed(1) + " MB" : "2.4 MB";
   const dateText = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // If Supabase connected and file selected, upload to Supabase Storage bucket 'class-files'
   if (supabaseClient && appState.selectedFileForUpload) {
     const file = appState.selectedFileForUpload;
     const filePath = `uploads/${Date.now()}_${file.name}`;
@@ -713,7 +717,6 @@ async function handleUploadSubmit(e) {
     size: sizeText
   };
 
-  // Save to Supabase DB if connected
   if (supabaseClient) {
     try {
       await supabaseClient.from('resources').insert([newResource]);
@@ -734,5 +737,5 @@ async function handleUploadSubmit(e) {
     selectCategory(category);
   }
 
-  alert(`Successfully uploaded "${title}" under ${category} (${subject})! It is now live for all students.`);
+  alert(`Successfully uploaded "${title}" under ${category} (${subject} - ${exam})! It is now live for all students.`);
 }
